@@ -1,0 +1,47 @@
+# uberforeman setup sample file. This sample show a setup of 2 hosts
+# 1. database host 
+# 2. web server host - it requires running database for all webapps to start-up correctly
+# This setup will install database host first, then install web server. We will
+# pass a parameter to web server installation so it knows IP address of database server.
+{
+  # 'default-host': here you can define properties common for all hosts in your setup
+  # host can always override it
+  "default-host": {
+    # here is the list of currently supported VM parameters (this applies to VM as well)
+    # 'storage': name of ovirt storage domain
+    # 'cluster': name of ovirt cluster
+    # 'hostGroup': foreman hostgroup label (or substring)
+    # 'order': installation order/phase (number)
+    # 'domain': foreman domain
+    "storage":"something"
+  },
+  # 'global': here you can define global variables for your setup
+  # then you can refer to them using $global:variable within 'params' (foreman host parameters)
+  "global": {
+    "variable":"false"
+  },
+  # 'hosts': is array of hosts you want to manage within your setup
+  "hosts":[
+    {
+      # 'name': is required - name for this host 
+      "name":"database123", 
+      "order":0,
+      "hostGroup":"postgres",
+      # 'params': dict of host parameters passed to foreman
+      "params": {
+        # here we refer to global called 'variable'
+        "pg_perf_tweaks":"$global:variable"
+      }
+    },
+    {
+      "name":"webserver",
+      # we set order to 1, so this host will be installed after all hosts with order < 1
+      "order":1,
+      "hostGroup":"webserver",
+      "params": {
+        # here we refer to IP address of our host 'database123'
+        "pg_host":"$host:database123.ip"
+      }
+    }
+  ]
+}
