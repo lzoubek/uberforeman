@@ -20,11 +20,12 @@
   "global": {
     "variable":"false"
   },
-  # 'hosts': is array of hosts you want to manage within your setup
+  # 'hosts': is array of hosts you want to manage within your setup.
   "hosts":[
     {
       # 'name': is required - name for this host 
-      "name":"database123", 
+      "name":"database123",
+      # 'order': set a provisioning phase, if you set same number to several hosts, they'll be installed in parallel
       "order":0,
       "hostGroup":"postgres",
       # 'params': dict of host parameters passed to foreman
