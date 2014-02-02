@@ -35,7 +35,7 @@ Create a file called `$HOME/.uberforeman` with following content
     [Foreman]
     url = https://foreman.yourdomain.org
     [Host Defaults]
-    cluster = default
+    cluster = default #see sample
 
 
 #### 2. Create your setup.json
