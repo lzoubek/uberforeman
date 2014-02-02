@@ -7,8 +7,10 @@ hosts, define provisioning order, so some hosts are installed earlier than other
 
 ### Requirements
 * **python2.7/3.3**
-* **requests** - python http client library ```easy_install requests```
-If you do not have easy_install do ```yum install python-setuptools```
+* **requests** - python http client library `easy_install requests`
+
+If you do not have easy_install do `yum install python-setuptools`
+
 ### Installation
 to install just for current user without root access, (you should include `~/.local/bin/` to your `$PATH`)
 
