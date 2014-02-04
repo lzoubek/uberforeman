@@ -1,4 +1,4 @@
-import logging, re, time
+import logging, re, time, copy
 from threading import Lock
 from client import OvirtClient,getOrFail,getOrNone
 from hostready import JonBCHostReady
@@ -47,7 +47,7 @@ class Uberforeman(object):
     def _applyDefaults(self,hostDefaults):
         if not 'default-host' in self.setup.keys():
             self.setup['default-host'] = {}
-        default = defaults.VM_DEFAULT.copy()
+        default = copy.deepcopy(defaults.VM_DEFAULT)
         default.update(hostDefaults)
         self.setup['default-host'].update(default)
         for vm in self.setup['hosts']:
@@ -64,7 +64,7 @@ class Uberforeman(object):
             if remote:
                 # copy IP directly to VM so we can access it easily
                 vm['ip'] = remote['ip']
-            local = vm['status']['local'] = defaults.FOREMAN_DEFAULT.copy()
+            local = vm['status']['local'] = copy.deepcopy(defaults.FOREMAN_DEFAULT)
             local['name'] = vm['name']
             local['hostgroup_id'] = getOrFail(f.hostgroups)(label=vm['hostGroup'])['id']
             cr = getOrFail(f.computeResources)(name=vm['computeResource'])
@@ -74,6 +74,8 @@ class Uberforeman(object):
             local['domain_id'] = getOrFail(f.domains)(name=vm['domain'])['id']
             local['compute_attributes']['cluster'] = getOrFail(cr.clusters)(name=vm['cluster'])['id']
             local['compute_attributes']['volumes_attributes']['0']['storage_domain'] = getOrFail(cr.storages)(name=vm['storage'])['id']
+            local['compute_attributes']['volumes_attributes']['0']['size_gb'] = vm['disk']
+            local['compute_attributes']['memory'] = int(vm['ram'] * 1024 * 1024 * 1024)
 
     def _validateSetup(self):
         """Validates setup file format - it's just a syntactic check of correct keys/values"""
@@ -189,10 +191,12 @@ class Uberforeman(object):
                         self.vmChecker.waitForInstalled(vm['ip'],vm['name'])
                         self.log.info('VM %s was installed' %vm['name'])
                 else:
+                    index = 0
                     for key,value in vm['params'].items():
                         value = self._resolveExpr(value)
                         param = {'name':key,'value':value,'reference_id':0,'nested':''}
-                        vm['status']['local']['host_parameters_attributes'][str(int(time.time()))] = param
+                        vm['status']['local']['host_parameters_attributes'][str(index)] = param
+                        index+=1
 
                     self.log.info('Installing %s ..', vm['name'])
                     r = self.foreman.post('/api/hosts',{'host':vm['status']['local']})

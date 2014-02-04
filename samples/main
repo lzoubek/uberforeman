@@ -13,6 +13,8 @@
     # 'hostGroup': foreman hostgroup label (or substring)
     # 'order': installation order/phase (number)
     # 'domain': foreman domain
+    # 'disk': size of disk in GB (number)
+    # 'ram': size of memory in GB (number)
     "storage":"something"
   },
   # 'global': here you can define global variables for your setup

@@ -7,7 +7,7 @@ VM_DEFAULT = {
         "domain":"bc.jonqe.lab.eng.bos.redhat.com",
         "arch":"x86_64",
         "disk":10,
-        "ram":2048
+        "ram":4
         }
 
 # defaults for foreman VM representation
