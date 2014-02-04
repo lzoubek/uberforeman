@@ -1,4 +1,4 @@
-import threading
+import threading,time
 try:
     import queue
 except:
@@ -12,8 +12,10 @@ def run_parallel(target, args_list):
         result.put(target(*args))
     threads = [threading.Thread(target=task_wrapper, args=args) for args in args_list]
     for t in threads:
+        t.daemon = True
         t.start()
     for t in threads:
-        t.join()
+        while t.isAlive():
+            time.sleep(0.1)
     return result
 
