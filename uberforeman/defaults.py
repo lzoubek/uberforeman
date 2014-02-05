@@ -2,6 +2,7 @@
 # defaults for VM definition in setup
 VM_DEFAULT = {
         "computeResource":"rhevm",
+        "clones":0,
         "cluster":"userspace",
         "storage":"BC_shared",
         "domain":"bc.jonqe.lab.eng.bos.redhat.com",

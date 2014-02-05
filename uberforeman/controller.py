@@ -54,9 +54,14 @@ class Uberforeman(object):
             self.setup['default-host'] = {}
         default = copy.deepcopy(defaults.VM_DEFAULT)
         default.update(hostDefaults)
-        self.setup['default-host'].update(default)
+        default.update(self.setup['default-host'])
+        self.setup['default-host'] = default
+        vms = []
         for vm in self.setup['hosts']:
-            vm.update(self.setup['default-host'])
+            host = copy.deepcopy(default)
+            host.update(vm)
+            vms.append(host)
+        self.setup['hosts'] = vms
 
     def validateSetup(self):
         """Validates setup by checking state/existence of hosts and referenced resources"""
@@ -90,11 +95,20 @@ class Uberforeman(object):
             if not 'order' in vm.keys():
                 vm['order'] = 0
             assert type(vm['order']) == int, "order attribute must be integer"
+            assert type(vm['clones']) == int, "clones attribute must be integer"
+            assert vm['clones'] >= 0, "clones attribute must be positive integer"
             assert 'name' in vm.keys() and 'hostGroup' in vm.keys(), "name and hostGroup attributes are required"
             if not 'params' in vm.keys():
                 vm['params'] = {}
             assert type(vm['params']) == type({}), "params attribute must be dict"
 
+        # expand clones
+        for host in s['hosts']:
+            for c in xrange(host['clones']):
+                clone = copy.deepcopy(host)
+                clone['name'] += str(c+1)
+                clone['clones'] = 0
+                s['hosts'].append(clone)
 
         s['hosts'] = sorted(s['hosts'],key=lambda x: x['order'])
         assert len(set(map(lambda x: x['name'],s['hosts']))) == len(s['hosts']), "name attr of VM in setup must me unique"

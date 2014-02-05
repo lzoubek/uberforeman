@@ -1,8 +1,11 @@
 # uberforeman setup sample file. This sample show a setup of 2 hosts
-# 1. database host 
-# 2. web server host - it requires running database for all webapps to start-up correctly
+# 1 x database host 
+# 2 x web server host - it requires running database for all webapps to start-up correctly
 # This setup will install database host first, then install web server. We will
 # pass a parameter to web server installation so it knows IP address of database server.
+# 
+# NOTE: this is JSON format file (which does not allow comments) but uberforeman filters comments out,
+#       so you can keep comments in your setup files
 {
   # 'default-host': here you can define properties common for all hosts in your setup
   # host can always override it
@@ -12,6 +15,7 @@
     # 'cluster': name of ovirt cluster
     # 'hostGroup': foreman hostgroup label (or substring)
     # 'order': installation order/phase (number)
+    # 'clones': number of clones of VM. Each clone gets unique name as 'name'$index, where $index starts with 1
     # 'domain': foreman domain
     # 'disk': size of disk in GB (number)
     # 'ram': size of memory in GB (number)
@@ -40,6 +44,7 @@
       "name":"webserver",
       # we set order to 1, so this host will be installed after all hosts with order < 1
       "order":1,
+      "clones":1, # also create 2nd indentical host (will get name webserver1)
       "hostGroup":"webserver",
       "params": {
         # here we refer to IP address of our host 'database123'
