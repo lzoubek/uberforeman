@@ -5,6 +5,9 @@ from hostready import JonBCHostReady
 import json
 import defaults, util
 
+class AttrResolveException(Exception):
+    pass
+
 class Uberforeman(object):
 
     def __init__(self,foreman,setup,name,hostDefaults={}):
@@ -38,6 +41,8 @@ class Uberforeman(object):
                 vm_list = list(filter(lambda x:x['name']==name,self.setup['hosts']))
                 if len(vm_list) != 1:
                     raise Exception('Error resolving value for expression %s' % value)
+                if attr not in vm_list[0]:
+                    raise AttrResolveException('Attribute %s is not yet known for host %s' % (attr,vm_list[0]['name']))
                 value = vm_list[0][attr]
             elif _type == 'global':
                 value = self.setup['global'][name]
@@ -100,8 +105,8 @@ class Uberforeman(object):
                     _type,name,attr = expr
                     if _type == 'host':
                         assert attr in ['ip'], "invalid expression attribute"
-                        prev = map(lambda x: x['name'],filter(lambda x: x['order'] < vm['order'],s['hosts']))
-                        assert name in prev, "referenced VM name %s must be in earlier phase (lower order)" % name
+                        #prev = map(lambda x: x['name'],filter(lambda x: x['order'] < vm['order'],s['hosts']))
+                        #assert name in prev, "referenced VM name %s must be in earlier phase (lower order)" % name
                     elif _type == 'global':
                         assert 'global' in s.keys(), "refered to global %s but no globals defined" % name 
                         assert name in s['global'].keys(), "refered to global %s but this global is not defined" % name
@@ -168,67 +173,64 @@ class Uberforeman(object):
         if len(self.setup['hosts']) == 0:
             self.log.info('Empty setup?')
             return
-        phase = self.setup['hosts'][0]['order']
-        to_install = len(self.setup['hosts'])
-        while to_install > 0:
-            hosts = list(filter(lambda x:x['order'] == phase,self.setup['hosts']))
-            to_install -= len(hosts)
-            self.log.info('Starting phase %d',phase)
-            phase += 1
-            
-            def installHost(vm):
+        
+        def installHost(vm):
+            with lock:
                 exists = vm['status']['remote'] != None
-                if exists:
-                    power = self.foreman.power(vm['status']['remote']['id'],'state').json()['power']
-                    installed = self.vmChecker.isInstalled(vm['ip'])
-                    if power == 'up' and installed:
-                        self.log.info('VM %s is already installed', vm['name'])
-                    elif not power == 'up':
-                        self.log.warning('Host %s is not running, starting...', vm['name'])
-                        self._startHost(vm)
-                    else:
-                        self.log.info('Waiting for %s to get installed...', vm['name'])
-                        self.vmChecker.waitForInstalled(vm['ip'],vm['name'])
-                        self.log.info('VM %s was installed' %vm['name'])
-                else:
-                    index = 0
-                    for key,value in vm['params'].items():
-                        value = self._resolveExpr(value)
-                        param = {'name':key,'value':value,'reference_id':0,'nested':''}
-                        vm['status']['local']['host_parameters_attributes'][str(index)] = param
-                        index+=1
+            if exists:
+                self.log.info('host %s already exists', vm['name'])
+                return True
+            else:
+                index = 0
+                for key,value in vm['params'].items():
+                    resolved = False
+                    while resolved == False:
+                        try:
+                            with lock:
+                                value = self._resolveExpr(value)
+                                resolved = True
+                        except AttrResolveException:
+                            # refering to host attr which is not yet ready .. waiting 
+                            time.sleep(1)
+                            #self.log.info('sleeping because waiting for %s' % value)
 
-                    self.log.info('Installing %s ..', vm['name'])
-                    r = self.foreman.post('/api/hosts',{'host':vm['status']['local']})
-                    if r.status_code != 200:
-                        self.log.error('Server returned %d : %s',r.status_code,r.text)
-                        raise Exception('Failed to install host')
-                    self.log.info('Host %s created in foreman',vm['name'])
-                    with lock:
-                        vm['status']['remote'] = r.json()['host']
-                        vm['ip'] = vm['status']['remote']['ip']
-                    self.log.info('Waiting for %s to get installed...', vm['name'])
-                    self.vmChecker.waitForInstalled(vm['ip'],vm['name'])
-                    self.log.info('Host %s is installed' %vm['name'])
+                    param = {'name':key,'value':value,'reference_id':0,'nested':''}
+                    vm['status']['local']['host_parameters_attributes'][str(index)] = param
+                    index+=1
 
-            lock = Lock()
-            util.run_parallel(installHost, map(lambda x: (x,), hosts))
-            self.log.info('Setup installed')
+                self.log.info('installing %s ..', vm['name'])
+                r = self.foreman.post('/api/hosts',{'host':vm['status']['local']})
+                if r.status_code != 200:
+                    self.log.error('server returned %d : %s',r.status_code,r.text)
+                    raise Exception('failed to install host')
+                self.log.info('host %s created in foreman',vm['name'])
+                with lock:
+                    vm['status']['remote'] = r.json()['host']
+                    vm['ip'] = vm['status']['remote']['ip']
+                return True
+
+        lock = Lock()
+        success = util.run_parallel_bool(installHost, map(lambda x: (x,), self.setup['hosts']))
+        if success:    
+            self.log.info('Setup deployed to foreman')
+            self.start()
+        else:
+            self.log.info('Failed to deploy hosts to foreman')
+
+    def _stopHost(self,vm):    
+        if vm['status']['remote']:
+            self.log.info('Power of %s' %vm['name'])
+            r = self.foreman.power(vm['status']['remote']['id'],'stop')
+            if r.status_code != 200:
+                self.log.error('Failed to stop %s, server returned %d : %s',vm['name'],r.status_code,r.text)
+            else:
+                self.log.info('VM %s was stopped', vm['name'])
+        else:
+            self.log.warn('VM %s does not exist in foreman',vm['name'])
 
     def stop(self):
         self.log.info("Power off setup : %s" % self.name)
-        def stopHost(vm):    
-            if vm['status']['remote']:
-                self.log.info('Power of %s' %vm['name'])
-                r = self.foreman.power(vm['status']['remote']['id'],'stop')
-                if r.status_code != 200:
-                    self.log.error('Failed to stop %s, server returned %d : %s',vm['name'],r.status_code,r.text)
-                else:
-                    self.log.info('VM %s was stopped', vm['name'])
-            else:
-                self.log.warn('VM %s does not exist in foreman',vm['name'])
-
-        util.run_parallel(stopHost, map(lambda x: (x,), self.setup['hosts']))
+        util.run_parallel(self._stopHost, map(lambda x: (x,), self.setup['hosts']))
         self.log.info('Setup powered off')
     
     def destroy(self):
@@ -253,6 +255,16 @@ class Uberforeman(object):
         exists = vm['status']['remote'] != None
         if not exists:
             raise Exception('VM %s does not exist in foreman, use --install' % vm['name'])
+        power = self.foreman.power(vm['status']['remote']['id'],'state').json()['power']
+        installed = self.vmChecker.isInstalled(vm['ip'])
+        if power == 'up' and installed:
+            self.log.info('host %s is already installed', vm['name'])
+            return True
+        elif power == 'up':
+            self.log.info('Waiting for %s to get installed...', vm['name'])
+            self.vmChecker.waitForInstalled(vm['ip'],vm['name'])
+            self.log.info('Host %s is installed' %vm['name'])
+            return True
         self.log.info('Power on %s' %vm['name'])
         r = self.foreman.power(vm['status']['remote']['id'],'start')
         if r.status_code != 200:
@@ -261,7 +273,7 @@ class Uberforeman(object):
             self.log.info('Waiting for %s to get installed...', vm['name'])
             self.vmChecker.waitForInstalled(vm['ip'],vm['name'])
             self.log.info('Host %s is installed' %vm['name'])
-        
+            return True
 
     def start(self):
         self.log.info("Starting setup : %s" % self.name)
@@ -275,19 +287,23 @@ class Uberforeman(object):
             to_start -= len(hosts)
             self.log.info('Starting phase %d',phase)
             phase += 1
-            util.run_parallel(self._startHost, map(lambda x: (x,), hosts))
+            success = util.run_parallel_bool(self._startHost, map(lambda x: (x,), hosts))
+            if not success:
+                self.log.error('Failed to start/install several hosts')
+                return
+
         self.log.info('Setup started')
+    
+    def _buildHost(self,vm):
+        if vm['status']['remote']:
+            self.log.info(' Enable build for %s' %vm['name'])
+            r = self.foreman.put('/api/hosts/%d' % vm['status']['remote']['id'],{'host':{'build':True}})
+            if r.status_code != 200:
+                self.log.error('Failed to enable build for %s, server returned %d : %s',vm['name'],r.status_code,r.text)
     
     def enableBuild(self):
         self.log.info('Enable build for setup: %s',self.name)
-        def buildHost(vm):
-            if vm['status']['remote']:
-                self.log.info(' Enable build for %s' %vm['name'])
-                r = self.foreman.put('/api/hosts/%d' % vm['status']['remote']['id'],{'host':{'build':True}})
-                if r.status_code != 200:
-                    self.log.error('Failed to enable build for %s, server returned %d : %s',vm['name'],r.status_code,r.text)
-        
-        util.run_parallel(buildHost, map(lambda x: (x,), self.setup['hosts']))
+        util.run_parallel(self._buildHost, map(lambda x: (x,), self.setup['hosts']))
         self.log.info('Build enabled')
 
 

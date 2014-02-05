@@ -29,7 +29,7 @@ FOREMAN_DEFAULT = {
             "cluster" : "fcb97476-3365-11e2-94d7-5254009cc188",
             "memory" : "4294967296",
             "template" : "00000000-0000-0000-0000-000000000000",
-            "start" : "1",
+            "start" : "0",
             "interfaces_attributes" : {
                 "new_1363158080936" : {
                     "network" :
