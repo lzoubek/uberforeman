@@ -19,3 +19,10 @@ def run_parallel(target, args_list):
             time.sleep(0.1)
     return result
 
+def run_parallel_bool(target,args_list):
+    """"Target function must return non-null value on success to get True as result"""
+    result = run_parallel(target,args_list)
+    while not result.empty():
+        if result.get() == None:
+            return False
+    return True
