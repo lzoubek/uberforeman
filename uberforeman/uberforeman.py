@@ -3,8 +3,8 @@
 __author__ = 'Libor Zoubek'
 __email__ = 'lzoubek@redhat.com'
 
-import sys,os
-import argparse,json, sys
+import sys,os, re
+import argparse,json
 try:
     import configparser
 except:
@@ -12,6 +12,10 @@ except:
 
 from controller import Uberforeman
 from client import ForemanClient
+
+def filterSetupJson(fd):
+    """Filters out possible comments in setup JSON file"""
+    return ''.join(list(filter(lambda line: re.search('^[ \t]*#',line) == None,fd.readlines())))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -25,7 +29,7 @@ def main():
     group.add_argument('--restart', action='store_true', help='Restarts setup (same as --stop and --start)')
     group.add_argument('--force-install', action='store_true', help='Forces installation (same as --destroy and --install)')
     group.add_argument('--dump', action='store_true', help='Prints setup JSON file after applying all defaults')
-    parser.add_argument('setup',help='Setup JSON file')
+    parser.add_argument('setup',help='Setup file')
     parser.add_argument('--user', help='Your foreman username',default=None)
     parser.add_argument('--password', help='Your foreman password',default=None)
     parser.add_argument('--foreman', help='Your foreman URL',default=None)
@@ -55,7 +59,8 @@ def main():
     foreman = ForemanClient(foreman,user,passw)
     foreman.testConnection()
     with open(args.setup,'r') as setup:
-        fc = Uberforeman(foreman,json.load(setup),os.path.basename(args.setup),hostDefaults)
+        filtered = filterSetupJson(setup)
+        fc = Uberforeman(foreman,json.loads(filtered),os.path.basename(args.setup),hostDefaults)
         fc.validateSetup()
         if args.dump:
             fc.dump()
