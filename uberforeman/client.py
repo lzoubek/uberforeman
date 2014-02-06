@@ -91,7 +91,16 @@ class ForemanClient(object):
         return list(filter(f,self._domains))
 
     def hosts(self,**kwargs):
-        hosts = list(map(lambda x: x['host'],self.get('/api/hosts?search=%s' % kwargs['name'])))
+        if not hasattr(self,'_hosts'):
+            self._hosts = list(map(lambda x: x['host'],self.get('/api/hosts')))
+
+        def f(obj):
+            match = False
+            for arg,value in kwargs.items():
+                match |= obj[arg] == value
+            return match
+
+        hosts = list(filter(f,self._hosts))
         if len(hosts) == 1:
             return [self.get('/api/hosts/%d' % (hosts[0]['id']))['host']]
 
