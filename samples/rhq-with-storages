@@ -1,0 +1,52 @@
+# this sample setup deploys RHQ setup containing 5 hosts
+# 1 x RHQ Server (4.9.0) including Storage Node
+# 2 x RHQ Storage Node
+# 2 x RHQ Agent + EAP6   
+{
+  "default-host": {
+    "storage":"BC_shared",
+    "cluster":"userspace"
+  },
+  "global": {
+     "jon_url":"http://netcologne.dl.sourceforge.net/project/rhq/rhq/rhq-4.9.0/rhq-server-4.9.0.zip"
+  },
+  "hosts":[
+    {
+      "name":"sample-server",
+      "order":1,
+      "hostGroup":"JON/Server",
+      "params": {
+        "jon_server_url":"$global:jon_url"
+      }
+    },
+    {
+      "name":"sample-storage",
+      "order":1,
+      "ram":1,
+      "clones":1,
+      "hostGroup":"JON/Server/Storage Node",
+      "params": {
+        "jon_server_url":"$global:jon_url",
+        "jon_server_storage_host":"$host:sample-server.ip"
+      }
+    },
+    {
+      "name":"sample-agent1",
+      "order":1,
+      "ram":2,
+      "hostGroup":"EAP6/Standalone",
+      "params": {
+        "jon_server_host":"$host:sample-server.ip"
+      }
+    },
+    {
+      "name":"sample-agent2",
+      "order":1,
+      "ram":2,
+      "hostGroup":"EAP6/Domain",
+      "params": {
+        "jon_server_host":"$host:sample-server.ip"
+      }
+    }
+  ]
+}
