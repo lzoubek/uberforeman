@@ -134,7 +134,9 @@ class Uberforeman(object):
             remoteHG = self.foreman.hostgroups(id=remote['hostgroup_id'])[0]['label']                
             self.log.warn('HostGroup is out of sync, consider --force-install, foreman reports : %s',remoteHG)
         # detect param additions/removals and value changes
-        remote_params =  map(lambda p:{p['host_parameter']['name']:p['host_parameter']['value']},remote['host_parameters'])
+        remote_params = []
+        if 'host_parameters' in remote.keys():
+            remote_params =  map(lambda p:{p['host_parameter']['name']:p['host_parameter']['value']},remote['host_parameters'])
         rp = {}
         [rp.update(x) for x in remote_params]
         lp = {}
