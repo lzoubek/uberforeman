@@ -3,7 +3,7 @@
 __author__ = 'Libor Zoubek'
 __email__ = 'lzoubek@redhat.com'
 
-import sys,os, re
+import sys,os,re,signal
 import argparse,json
 try:
     import configparser
@@ -12,6 +12,11 @@ except:
 
 from controller import Uberforeman
 from client import ForemanClient
+
+def signal_handler(signal, frame):
+    print('uberforeman was interrupted, will now exit')
+    sys.exit(130)
+signal.signal(signal.SIGINT, signal_handler)
 
 def filterSetupJson(fd):
     """Filters out possible comments in setup JSON file"""
