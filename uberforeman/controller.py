@@ -283,6 +283,25 @@ class Uberforeman(object):
             return True
         self.log.info('Power on %s' %vm['name'])
         r = self.foreman.power(vm['status']['remote']['id'],'start')
+
+        def needs_wait(r):
+            """return true if message returned by foreman indicates that we just need to wait to get power on
+            action succeed"""
+            if r.status_code != 500:
+                return False
+            try:
+                msg = r.json()
+                if 'error' in msg.keys() and 'message' in msg['error'].keys():
+                    if msg['error']['message'].find('Please try again in a few minutes') > 0:
+                        self.log.warning('Host failed to start : %s',msg['error']['message'])
+                        self.log.info('Obeying, waiting and retrying...')
+                        return True
+            except: # just in case foreman does not return JSON
+                pass
+
+        while needs_wait(r):
+            time.sleep(5)
+            r = self.foreman.power(vm['status']['remote']['id'],'start')
         if r.status_code != 200:
             self.log.error('Failed to start %s, server returned %d : %s',vm['name'],r.status_code,r.text)
         else:
