@@ -21,6 +21,10 @@ def filterSetupJson(fd):
     """Filters out possible comments in setup JSON file"""
     return ''.join(list(filter(lambda line: re.search('^[ \t]*#',line) == None,fd.readlines())))
 
+def filterSetupJsonStr(text):
+    """Filters out possible comments in setup JSON file"""
+    return ''.join(list(filter(lambda line: re.search('^[ \t]*#',line) == None,text.split('\n'))))
+
 def main():
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
@@ -67,7 +71,7 @@ def main():
         r = requests.get(args.setup)
         if r.status_code != 200:
             raise Exception('Unable to GET %s, server returned %d : %s'%(args.setup,r.status_code,r.text))
-        setupContent = filterSetupJson(r.text)
+        setupContent = filterSetupJsonStr(r.text)
     else:
         with open(args.setup,'r') as setup:
             setupContent = filterSetupJson(setup)
