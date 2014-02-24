@@ -5,7 +5,7 @@ VERSION = '1.0.0'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 try:
-    from setup3lib import setup
+    from setuptools import setup
     from setuptools import find_packages
     addl_args = dict(
         zip_safe = False,
@@ -24,7 +24,6 @@ except ImportError:
         packages = ['uberforeman'],
         scripts = ['bin/uberforeman'],
         )
-
 setup(
     name = 'uberforeman',
     version = VERSION,

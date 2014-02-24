@@ -1,9 +1,10 @@
 import logging, re, time, copy
 from threading import Lock
-from client import OvirtClient,getOrFail,getOrNone
-from hostready import JonBCHostReady
+from .client import OvirtClient,getOrFail,getOrNone
+from .hostready import JonBCHostReady
 import json
-import defaults, util
+from .defaults import VM_DEFAULT, FOREMAN_DEFAULT
+from .util import run_parallel, run_parallel_bool
 
 class AttrResolveException(Exception):
     pass
@@ -52,7 +53,7 @@ class Uberforeman(object):
     def _applyDefaults(self,hostDefaults):
         if not 'default-host' in self.setup.keys():
             self.setup['default-host'] = {}
-        default = copy.deepcopy(defaults.VM_DEFAULT)
+        default = copy.deepcopy(VM_DEFAULT)
         default.update(hostDefaults)
         default.update(self.setup['default-host'])
         self.setup['default-host'] = default
@@ -74,7 +75,7 @@ class Uberforeman(object):
             if remote:
                 # copy IP directly to VM so we can access it easily
                 vm['ip'] = remote['ip']
-            local = vm['status']['local'] = copy.deepcopy(defaults.FOREMAN_DEFAULT)
+            local = vm['status']['local'] = copy.deepcopy(FOREMAN_DEFAULT)
             local['name'] = vm['name']
             local['hostgroup_id'] = getOrFail(f.hostgroups)(label=vm['hostGroup'])['id']
             cr = getOrFail(f.computeResources)(name=vm['computeResource'])
@@ -104,7 +105,7 @@ class Uberforeman(object):
 
         # expand clones
         for host in s['hosts']:
-            for c in xrange(host['clones']):
+            for c in range(host['clones']):
                 clone = copy.deepcopy(host)
                 clone['name'] += str(c+1)
                 clone['clones'] = 0
@@ -226,7 +227,7 @@ class Uberforeman(object):
                 return True
 
         lock = Lock()
-        success = util.run_parallel_bool(installHost, map(lambda x: (x,), self.setup['hosts']))
+        success = run_parallel_bool(installHost, map(lambda x: (x,), self.setup['hosts']))
         if success:    
             self.log.info('Setup deployed to foreman')
             self.start()
@@ -246,7 +247,7 @@ class Uberforeman(object):
 
     def stop(self):
         self.log.info("Power off setup : %s" % self.name)
-        util.run_parallel(self._stopHost, map(lambda x: (x,), self.setup['hosts']))
+        run_parallel(self._stopHost, map(lambda x: (x,), self.setup['hosts']))
         self.log.info('Setup powered off')
     
     def destroy(self):
@@ -264,7 +265,7 @@ class Uberforeman(object):
                 self.log.warn('Host %s does not exist in foreman',vm['name'])
         
         lock = Lock()
-        util.run_parallel(destroyHost, map(lambda x: (x,), self.setup['hosts']))
+        run_parallel(destroyHost, map(lambda x: (x,), self.setup['hosts']))
         self.log.info('Setup destroyed')
         
     def _startHost(self,vm):
@@ -322,7 +323,7 @@ class Uberforeman(object):
             to_start -= len(hosts)
             self.log.info('Starting phase %d',phase)
             phase += 1
-            success = util.run_parallel_bool(self._startHost, map(lambda x: (x,), hosts))
+            success = run_parallel_bool(self._startHost, map(lambda x: (x,), hosts))
             if not success:
                 self.log.error('Failed to start/install several hosts')
                 return
@@ -338,7 +339,7 @@ class Uberforeman(object):
     
     def enableBuild(self):
         self.log.info('Enable build for setup: %s',self.name)
-        util.run_parallel(self._buildHost, map(lambda x: (x,), self.setup['hosts']))
+        run_parallel(self._buildHost, map(lambda x: (x,), self.setup['hosts']))
         self.log.info('Build enabled')
 
 

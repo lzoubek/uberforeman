@@ -1,2 +1,2 @@
-from uberforeman import main
+from .uberforeman import main
 __all__ = ['main']

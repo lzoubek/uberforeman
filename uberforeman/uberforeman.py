@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 __author__ = 'Libor Zoubek'
-__email__ = 'lzoubek@redhat.com'
-
+__email__  = 'lzoubek@redhat.com'
 import sys,os,re,signal
 import argparse,json
 try:
@@ -10,8 +9,8 @@ try:
 except:
     import ConfigParser as configparser
 
-from controller import Uberforeman
-from client import ForemanClient
+from .controller import Uberforeman
+from .client import ForemanClient
 
 def signal_handler(signal, frame):
     print('uberforeman was interrupted, will now exit')
@@ -89,6 +88,3 @@ def main():
         if args.force_install:
             fc.destroy()
             fc.install()
-
-if __name__ == '__main__':
-    main()
