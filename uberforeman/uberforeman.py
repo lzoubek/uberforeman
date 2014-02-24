@@ -3,7 +3,7 @@
 __author__ = 'Libor Zoubek'
 __email__  = 'lzoubek@redhat.com'
 import sys,os,re,signal
-import argparse,json
+import argparse,json,requests
 try:
     import configparser
 except:
@@ -62,29 +62,37 @@ def main():
         passw = getpass.getpass()
     foreman = ForemanClient(foreman,user,passw)
     foreman.testConnection()
-    with open(args.setup,'r') as setup:
-        filtered = filterSetupJson(setup)
-        fc = Uberforeman(foreman,json.loads(filtered),os.path.basename(args.setup),hostDefaults)
-        fc.validateSetup()
-        if args.dump:
-            fc.dump()
-        if args.status:
-            fc.status()
-        if args.install:
-            fc.install()
-        if args.stop:
-            fc.stop()
-        if args.start:
-            fc.start()
-        if args.restart:
-            fc.stop()
-            fc.start()
-        if args.destroy:
-            fc.destroy()
-        if args.reinstall:
-            fc.enableBuild()
-            fc.stop()
-            fc.start()
-        if args.force_install:
-            fc.destroy()
-            fc.install()
+    setupContent = ''
+    if args.setup.find('http://') == 0 or args.setup.find('https://') == 0:
+        r = requests.get(args.setup)
+        if r.status_code != 200:
+            raise Exception('Unable to GET %s, server returned %d : %s'%(args.setup,r.status_code,r.text))
+        setupContent = filterSetupJson(r.text)
+    else:
+        with open(args.setup,'r') as setup:
+            setupContent = filterSetupJson(setup)
+    
+    fc = Uberforeman(foreman,json.loads(setupContent),os.path.basename(args.setup),hostDefaults)
+    fc.validateSetup()
+    if args.dump:
+        fc.dump()
+    if args.status:
+        fc.status()
+    if args.install:
+        fc.install()
+    if args.stop:
+        fc.stop()
+    if args.start:
+        fc.start()
+    if args.restart:
+        fc.stop()
+        fc.start()
+    if args.destroy:
+        fc.destroy()
+    if args.reinstall:
+        fc.enableBuild()
+        fc.stop()
+        fc.start()
+    if args.force_install:
+        fc.destroy()
+        fc.install()
