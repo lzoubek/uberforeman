@@ -14,11 +14,12 @@ class Uberforeman(object):
     def __init__(self,foreman,setup,name,hostDefaults={}):
         self.log = logging.getLogger("Foreman")
         self.log.setLevel(logging.INFO)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
-        ch.setFormatter(formatter)
-        self.log.addHandler(ch)
+        if len(self.log.handlers) == 0:
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.INFO)
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            ch.setFormatter(formatter)
+            self.log.addHandler(ch)
         self.foreman = foreman
         self.vmChecker = JonBCHostReady(foreman)
         self.setup = setup
