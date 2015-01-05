@@ -56,7 +56,19 @@ class ForemanClient(object):
 
     def hostgroups(self,**kwargs):
         if not hasattr(self,'host_groups'):
-            self.host_groups = list(map(lambda x:x['hostgroup'],self.get('/api/hostgroups')))
+            self._host_groups_label_map = {}
+            def f(hg):
+                self._host_groups_label_map[str(hg['hostgroup']['id'])] = hg['hostgroup']['name']
+                return hg['hostgroup']
+
+            self.host_groups = list(map(f,self.get('/api/hostgroups')))
+            # build label field containing whole hostgroup name including ancestry names
+            for hg in self.host_groups:
+                hg['label'] = hg['name']
+                if hg['ancestry']:
+                    hg['label'] = '/'.join(map(lambda id:self._host_groups_label_map[id],hg['ancestry'].split('/')))
+                    hg['label']+= '/' + hg['name']
+
         def f(obj):
             match = False
             for arg,value in kwargs.items():
