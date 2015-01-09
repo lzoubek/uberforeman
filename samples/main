@@ -1,4 +1,4 @@
-# uberforeman setup sample file. This sample show a setup of 2 hosts
+# uberforeman setup sample file. This sample show a setup of 3 hosts
 # 1 x database host 
 # 2 x web server host - it requires running database for all webapps to start-up correctly
 # This setup will install database host first, then install web server. We will
@@ -19,6 +19,7 @@
     # 'domain': foreman domain
     # 'disk': size of disk in GB (number)
     # 'ram': size of memory in GB (number)
+    # 'image' name of the foreman image - if set, image-based provisioning is used
     "storage":"something"
   },
   # 'global': here you can define global variables for your setup
@@ -47,7 +48,7 @@
       "clones":1, # also create 2nd indentical host (will get name webserver1)
       "hostGroup":"webserver",
       "params": {
-        # here we refer to IP address of our host 'database123'
+        # here we refer to IP address of our host 'database123' from previous phase (with order = 0)
         "pg_host":"$host:database123.ip"
       }
     }
