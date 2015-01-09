@@ -1,0 +1,21 @@
+# this sample setup deploys setup containing single RHQ 4.9.0 server using image-based provisioning method
+{
+  "default-host": {
+    "storage":"BC_shared",
+    "cluster":"userspace"
+  },
+  "global": {
+     "jon_url":"http://netcologne.dl.sourceforge.net/project/rhq/rhq/rhq-4.9.0/rhq-server-4.9.0.zip"
+  },
+  "hosts":[
+    {
+      "name":"single-imagebased-server39",
+      "order":0,
+      "hostGroup":"JON/Server/JON 3.3.0",
+      "image":"rhel6_6_x86_64" # name of foreman image
+      "params": {
+        "jon_server_url":"$global:jon_url"
+      }
+    }
+  ]
+}

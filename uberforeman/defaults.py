@@ -8,7 +8,8 @@ VM_DEFAULT = {
         "domain":"bc.jonqe.lab.eng.bos.redhat.com",
         "arch":"x86_64",
         "disk":10,
-        "ram":4
+        "ram":4,
+        "image":""
         }
 
 # defaults for foreman VM representation
@@ -24,6 +25,7 @@ FOREMAN_DEFAULT = {
         "provision_method" : "build",
         "build" : "1",
         "ptable_id" : "1",
+        "image_id" : None,
         "host_parameters_attributes":{},
         "compute_attributes" : {
             "cores" : "1",
@@ -41,7 +43,7 @@ FOREMAN_DEFAULT = {
             },
             "volumes_attributes" : {
                 "0" : {
-                    "size_gb" : "10",
+                    "size_gb" : "15",
                     "storage_domain" : "b250d85c-2837-4efa-8c94-0f7c262418cc",
                     "_delete" : "",
                     "id" : ""

@@ -1,7 +1,7 @@
 import sys
 import os
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 try:
@@ -29,7 +29,7 @@ setup(
     version = VERSION,
     author = 'Libor Zoubek',
     author_email = 'lzoubek@redhat.com',
-    description = ('uberforeman is a CLI tool to foreman that can manage complex setups'),
+    description = ('uberforeman is a CLI tool to foreman that can manage and deploy multi-host setups'),
     long_description = \
     """
     tbd...

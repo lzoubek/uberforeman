@@ -28,26 +28,39 @@ class ForemanClient(object):
             return url
         return self.url+'/'+url.lstrip('./')
 
-    def get(self,resource):
+    def get(self,resource,headers={}):
         append = '?'
         if resource.find('?') > 0:
             append = '&'
         resource += append+'per_page=1000'
-        return requests.get(self._url(resource),auth=self.auth,verify=False).json()
+        headers['accept'] = 'version=2'
+        return requests.get(self._url(resource),auth=self.auth,verify=False,headers=headers).json()
 
     def delete(self,resource):
         return requests.delete(self._url(resource),auth=self.auth,verify=False)
 
     def post(self,resource,data,headers={}):
         headers['Content-type'] = 'application/json'
+        headers['accept'] = 'version=2'
         return requests.post(self._url(resource),json.dumps(data),auth=self.auth,verify=False,headers=headers)
     
     def put(self,resource,data,headers={}):
         headers['Content-type'] = 'application/json'
+        headers['accept'] = 'version=2'
         return requests.put(self._url(resource),json.dumps(data),auth=self.auth,verify=False,headers=headers)
-    
+   
+    def task(self,uuid, **kwargs):
+        tasks = list(self.get('/api/orchestration/%s/tasks' % uuid)['results'])
+        def f(obj):
+            match = False
+            for arg,value in kwargs.items():
+                match |= obj[arg] == value
+            return match
+
+        return list(filter(f,tasks))
+
     def power(self,host,action='state'):
-        return self.put('/api/hosts/%d/power' % host,{'power_action':action},headers={'accept':'version=2'})
+        return self.put('/api/hosts/%d/power' % host,{'power_action':action})
 
     def testConnection(self):
         test = self.get('/api')
@@ -56,31 +69,20 @@ class ForemanClient(object):
 
     def hostgroups(self,**kwargs):
         if not hasattr(self,'host_groups'):
-            self._host_groups_label_map = {}
-            def f(hg):
-                self._host_groups_label_map[str(hg['hostgroup']['id'])] = hg['hostgroup']['name']
-                return hg['hostgroup']
-
-            self.host_groups = list(map(f,self.get('/api/hostgroups')))
-            # build label field containing whole hostgroup name including ancestry names
-            for hg in self.host_groups:
-                hg['label'] = hg['name']
-                if hg['ancestry']:
-                    hg['label'] = '/'.join(map(lambda id:self._host_groups_label_map[id],hg['ancestry'].split('/')))
-                    hg['label']+= '/' + hg['name']
+            self.host_groups = list(self.get('/api/hostgroups')['results'])
 
         def f(obj):
             match = False
             for arg,value in kwargs.items():
-                match |= 'label' == arg and obj[arg].endswith(value)
+                match |= 'title' == arg and obj[arg].endswith(value)
                 match |= obj[arg] == value
             return match
-
+        
         return list(filter(f, self.host_groups))
     
     def computeResources(self,**kwargs):
         if not hasattr(self,'compute_resources'):
-            self.compute_resources = list(map(lambda x: x['compute_resource'],self.get('/api/compute_resources')))
+            self.compute_resources = list(self.get('/api/compute_resources')['results'])
         
         def f(obj):
             match = False
@@ -90,9 +92,18 @@ class ForemanClient(object):
 
         return list(filter(f,self.compute_resources))
 
+    def images(self, compute_resource, name):
+        if not hasattr(self, 'disk_images'):
+            self.disk_images  = list(self.get('api/compute_resources/%d/images' % compute_resource['id'])['results'])
+       
+        def f(obj):
+            return obj['name'] == name
+
+        return list(filter(f, self.disk_images))
+
     def domains(self,**kwargs):
         if not hasattr(self,'_domains'):
-            self._domains = list(map(lambda x: x['domain'],self.get('/api/domains')))
+            self._domains = list(self.get('/api/domains')['results'])
         
         def f(obj):
             match = False
@@ -104,7 +115,7 @@ class ForemanClient(object):
 
     def hosts(self,**kwargs):
         if not hasattr(self,'_hosts'):
-            self._hosts = list(map(lambda x: x['host'],self.get('/api/hosts')))
+            self._hosts = list(self.get('/api/hosts')['results'])
 
         def f(obj):
             match = False
@@ -114,7 +125,7 @@ class ForemanClient(object):
 
         hosts = list(filter(f,self._hosts))
         if len(hosts) == 1:
-            return [self.get('/api/hosts/%d' % (hosts[0]['id']))['host']]
+            return [self.get('/api/hosts/%d' % (hosts[0]['id']))]
 
 class OvirtClient(object):
 
