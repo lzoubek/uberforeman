@@ -98,6 +98,7 @@ class Uberforeman(object):
             local['compute_attributes']['volumes_attributes']['0']['storage_domain'] = getOrFail(cr.storages)(name=vm['storage'])['id']
             local['compute_attributes']['volumes_attributes']['0']['size_gb'] = vm['disk']
             local['compute_attributes']['memory'] = int(vm['ram'] * 1024 * 1024 * 1024)
+            local['compute_attributes']['cores'] = int(vm['cpus'])
 
     def _validateSetup(self):
         """Validates setup file format - it's just a syntactic check of correct keys/values"""
@@ -110,6 +111,7 @@ class Uberforeman(object):
             assert type(vm['clones']) == int, "clones attribute must be integer"
             assert vm['clones'] >= 0, "clones attribute must be positive integer"
             assert 'name' in vm.keys() and 'hostGroup' in vm.keys(), "name and hostGroup attributes are required"
+            assert vm['cpus'] == int and vm['cpus'] > 0, "cpus attribute must be integer and value greater than 0"
             if not 'params' in vm.keys():
                 vm['params'] = {}
             assert type(vm['params']) == type({}), "params attribute must be dict"

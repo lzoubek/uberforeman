@@ -9,6 +9,7 @@ VM_DEFAULT = {
         "arch":"x86_64",
         "disk":10,
         "ram":4,
+        "cpus":1,
         "image":""
         }
 

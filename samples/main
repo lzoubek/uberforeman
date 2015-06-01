@@ -19,6 +19,7 @@
     # 'domain': foreman domain
     # 'disk': size of disk in GB (number)
     # 'ram': size of memory in GB (number)
+    # 'cpus': num of CPUs (cores) (number)
     # 'image' name of the foreman image - if set, image-based provisioning is used
     "storage":"something"
   },
