@@ -12,6 +12,9 @@ except:
 from .controller import Uberforeman
 from .client import ForemanClient
 
+# disable urllib3 Unverified HTTPS warnings
+requests.packages.urllib3.disable_warnings()
+
 def signal_handler(signal, frame):
     print('uberforeman was interrupted, will now exit')
     sys.exit(130)
