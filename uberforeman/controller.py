@@ -31,9 +31,9 @@ class Uberforeman(object):
         m = re.search('\$host:(?P<name>[^\.]+).(?P<attr>[^$]+)',expr)
         if m:
             return 'host',m.group('name'),m.group('attr')
-        m = re.search('\$global:(?P<name>[^$]+)',expr)
+        m = re.search('\$global:(?P<name>[^$:]+)(:|$)',expr)
         if m:
-            return 'global',m.group('name'),None
+            return 'global',m.group('name'),m.group(0)
     
     def _resolveExpr(self,value):
         expr = self._expr(value)
@@ -100,18 +100,45 @@ class Uberforeman(object):
             local['compute_attributes']['memory'] = int(vm['ram'] * 1024 * 1024 * 1024)
             local['compute_attributes']['cores'] = int(vm['cpus'])
 
+
     def _validateSetup(self):
         """Validates setup file format - it's just a syntactic check of correct keys/values"""
         s = self.setup
         assert 'hosts' in s.keys(), "hosts array is required"
+    
+        def _typeNumAttrs(host):
+            for attr in ['order','clones','cpus','ram']:
+                try:
+                    host[attr] = int(host[attr])
+                except:
+                    pass
+        
+        def evalGlobals(setup, obj):
+            for key, value in obj.items():
+                if isinstance(value, str):
+                    expr = self._expr(value)
+                    if expr: # it is an expression
+                        _type, name, attr = expr
+                        if _type == 'host':
+                            assert attr in ['ip'], "invalid expression attribute"
+                        if _type == 'global':
+                            assert 'global' in s.keys(), "refered to global %s but no globals defined" % name 
+                            assert name in setup['global'].keys(), "refered to global %s but this global is not defined" % name
+                            obj[key] = obj[key].replace(attr, setup['global'][name])
+
         for vm in s['hosts']:
+            # extract global variables
+            evalGlobals(s,vm)
+            evalGlobals(s,vm['params'])
+            _typeNumAttrs(vm)
+
             if not 'order' in vm.keys():
                 vm['order'] = 0
             assert type(vm['order']) == int, "order attribute must be integer"
             assert type(vm['clones']) == int, "clones attribute must be integer"
             assert vm['clones'] >= 0, "clones attribute must be positive integer"
             assert 'name' in vm.keys() and 'hostGroup' in vm.keys(), "name and hostGroup attributes are required"
-            assert vm['cpus'] == int and vm['cpus'] > 0, "cpus attribute must be integer and value greater than 0"
+            assert type(vm['cpus']) == int and vm['cpus'] > 0, "cpus attribute must be integer and value greater than 0"
             if not 'params' in vm.keys():
                 vm['params'] = {}
             assert type(vm['params']) == type({}), "params attribute must be dict"
@@ -126,20 +153,7 @@ class Uberforeman(object):
 
         s['hosts'] = sorted(s['hosts'],key=lambda x: x['order'])
         assert len(set(map(lambda x: x['name'],s['hosts']))) == len(s['hosts']), "name attr of VM in setup must me unique"
-        for vm in s['hosts']:
-            for key,value in vm['params'].items():
-                expr = self._expr(value)
-                if expr: #we have expression
-                    _type,name,attr = expr
-                    if _type == 'host':
-                        assert attr in ['ip'], "invalid expression attribute"
-                        #prev = map(lambda x: x['name'],filter(lambda x: x['order'] < vm['order'],s['hosts']))
-                        #assert name in prev, "referenced VM name %s must be in earlier phase (lower order)" % name
-                    elif _type == 'global':
-                        assert 'global' in s.keys(), "refered to global %s but no globals defined" % name 
-                        assert name in s['global'].keys(), "refered to global %s but this global is not defined" % name
-
-
+        
     def _showOutOfSyncWarnings(self,vm):
         local = vm['status']['local']
         remote = vm['status']['remote']

@@ -24,9 +24,10 @@
     "storage":"something"
   },
   # 'global': here you can define global variables for your setup
-  # then you can refer to them using $global:variable within 'params' (foreman host parameters)
+  # then you can refer to them using $global:variable within 'params' (foreman host parameters) or within host attributes
   "global": {
-    "variable":"false"
+    "variable":"false",
+    "foo":"bar"
   },
   # 'hosts': is array of hosts you want to manage within your setup.
   "hosts":[
@@ -35,7 +36,8 @@
       "name":"database123",
       # 'order': set a provisioning phase, if you set same number to several hosts, they'll be installed in parallel
       "order":0,
-      "hostGroup":"postgres",
+      # if global variable is contained in a string it has to be bounded by : character
+      "hostGroup":"$global:foo: postgres",
       # 'params': dict of host parameters passed to foreman
       "params": {
         # here we refer to global called 'variable'
