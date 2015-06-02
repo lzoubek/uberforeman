@@ -24,6 +24,8 @@ class Uberforeman(object):
         self.vmChecker = JonBCHostReady(foreman)
         self.setup = setup
         self.name = name
+        if hostDefaults is None:
+                hostDefaults = {}
         self._applyDefaults(hostDefaults)
         self._validateSetup()
 

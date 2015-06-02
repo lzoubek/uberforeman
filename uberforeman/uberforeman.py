@@ -53,10 +53,9 @@ def main():
         passw = config.get('Login','password')
         foreman = config.get('Foreman','url')
         hostDefaults = dict(config.items('Host Defaults'))
-        if not hostDefaults: # section might not be defined
-            hostDefaults = {}
     except:
         pass
+    
     if args.user:
         user = args.user
     if args.password:
