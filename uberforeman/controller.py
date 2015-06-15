@@ -131,7 +131,8 @@ class Uberforeman(object):
         for vm in s['hosts']:
             # extract global variables
             evalGlobals(s,vm)
-            evalGlobals(s,vm['params'])
+            if 'parans' in vm.keys():
+                evalGlobals(s,vm['params'])
             _typeNumAttrs(vm)
 
             if not 'order' in vm.keys():

@@ -1,7 +1,7 @@
 import sys
 import os
 
-VERSION = '1.2.1'
+VERSION = '1.2.2'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 try:
